@@ -12,25 +12,7 @@ import Plotting.DefaultFormat as PDF
 import Plotting.MPLHelp as PMH
 import Plotting.ROOTHistHelp as PRHH
 
-def add_abs_dev_plot(ax, x, xy_dict, n_bins, hist_range):
-  """ Add the plots showing the absolute distributions.
-  """
-  h_SM = ax.hist(x, weights=xy_dict["SM"][1], ls="-", label="SM", range=hist_range, bins=n_bins, histtype=u'step')
-  SM_color = PMH.get_hist_color(h_SM)
-  
-  h_g1z_P = ax.hist(x, weights=xy_dict["g1z +"][1], ls="dashed", label=r"$\Delta g_1^{Z} = +\delta$", range=hist_range, bins=n_bins, histtype=u'step')
-  g1z_color = PMH.get_hist_color(h_g1z_P)
-  h_g1z_M = ax.hist(x, weights=xy_dict["g1z -"][1], ls="dotted" , label=r"$\Delta g_1^{Z} = -\delta$", color=g1z_color, range=hist_range, bins=n_bins, histtype=u'step')
-  
-  h_ka_P = ax.hist(x, weights=xy_dict["ka +"][1], ls="dashed", label=r"$\Delta \kappa_{\gamma} = +\delta$", range=hist_range, bins=n_bins, histtype=u'step')
-  ka_color = PMH.get_hist_color(h_ka_P)
-  h_ka_M = ax.hist(x, weights=xy_dict["ka -"][1], ls="dotted" , label=r"$\Delta \kappa_{\gamma} = -\delta$", color=ka_color, range=hist_range, bins=n_bins, histtype=u'step')
-  
-  h_la_P = ax.hist(x, weights=xy_dict["la +"][1], ls="dashed", label=r"$\Delta \lambda_{\gamma} = +\delta$", range=hist_range, bins=n_bins, histtype=u'step')
-  la_color = PMH.get_hist_color(h_la_P)
-  h_la_M = ax.hist(x, weights=xy_dict["la -"][1], ls="dotted" , label=r"$\Delta \lambda_{\gamma} = -\delta$", color=la_color, range=hist_range, bins=n_bins, histtype=u'step')
-  
-def add_rel_dev_plot(ax, x, xy_dict, SM_xsection, lumi):
+def add_rel_dev_plot(ax, x, xy_dict, n_bins, hist_range, SM_xsection, lumi):
   """ Add the plots showing the relative deviations from the SM.
   """
   y_SM = xy_dict["SM"][1]
@@ -42,24 +24,49 @@ def add_rel_dev_plot(ax, x, xy_dict, SM_xsection, lumi):
   d_la_M  = (xy_dict["la -"][1] - y_SM) / y_SM
   
   scale=100. # in percent
-  p_SM = ax.plot(x, np.zeros(len(x)), ls="dashed")
-  SM_line = ax.axline((np.amin(x), 0), (np.amax(x), 0), ls='--')
-  SM_color = PMH.get_plot_color(p_SM)
-  rel_SM_unc = 1/np.sqrt(y_SM / np.sum(y_SM) * SM_xsection * lumi) 
-  ax.fill_between(x, -rel_SM_unc*scale, +rel_SM_unc*scale, color=SM_color, alpha=0.25, label=r"SM unc. for {}ab$^{{-1}}$".format(lumi/1000.))
+  p_SM = ax.hist([], ls="solid", color="black", alpha=0.9, lw=1, range=hist_range, bins=n_bins, histtype=u'step')
   
-  p_g1z_P = ax.plot(x, d_g1z_P * scale, ls="dashed")
-  g1z_color = PMH.get_plot_color(p_g1z_P)
-  p_g1z_M = ax.plot(x, d_g1z_M * scale, ls="dotted", color=g1z_color)
+  p_g1z_P = ax.hist(x, weights=d_g1z_P * scale, ls="dashed", alpha=0.9, lw=3, range=hist_range, bins=n_bins, histtype=u'step')
+  g1z_color = PMH.get_hist_color(p_g1z_P)
+  p_g1z_M = ax.hist(x, weights=d_g1z_M * scale, ls="dotted", color=g1z_color, alpha=0.9, lw=3, range=hist_range, bins=n_bins, histtype=u'step')
   
-  p_ka_P = ax.plot(x, d_ka_P * scale, ls="dashed")
-  ka_color = PMH.get_plot_color(p_ka_P)
-  p_ka_M = ax.plot(x, d_ka_M * scale, ls="dotted", color=ka_color)
+  p_ka_P = ax.hist(x, weights=d_ka_P * scale, ls="dashed", alpha=0.9, lw=3, range=hist_range, bins=n_bins, histtype=u'step')
+  ka_color = PMH.get_hist_color(p_ka_P)
+  p_ka_M = ax.hist(x, weights=d_ka_M * scale, ls="dotted", color=ka_color, alpha=0.9, lw=3, range=hist_range, bins=n_bins, histtype=u'step')
   
-  p_la_P = ax.plot(x, d_la_P * scale, ls="dashed")
-  la_color = PMH.get_plot_color(p_la_P)
-  p_la_M = ax.plot(x, d_la_M * scale, ls="dotted", color=la_color)
+  p_la_P = ax.hist(x, weights=d_la_P * scale, ls="dashed", alpha=0.9, lw=3, range=hist_range, bins=n_bins, histtype=u'step')
+  la_color = PMH.get_hist_color(p_la_P)
+  p_la_M = ax.hist(x, weights=d_la_M * scale, ls="dotted", color=la_color, alpha=0.9, lw=3, range=hist_range, bins=n_bins, histtype=u'step')
 
+def add_dev_sig_plot(ax, x, xy_dict, n_bins, hist_range, SM_xsection, lumi):
+  """ Add the plots showing the significance of each deviation.
+  """
+  y_SM = xy_dict["SM"][1]
+  n_MC = np.sum(y_SM)
+  normed = lambda y: y * SM_xsection * lumi / n_MC
+  
+  # significance here: 
+  # how many sigma if we see signal? => (signal - background) / sqrt(signal)
+  s_g1z_P = np.abs(normed(xy_dict["g1z +"][1]) - normed(y_SM)) / np.sqrt(normed(xy_dict["g1z +"][1]))
+  s_g1z_M = np.abs(normed(xy_dict["g1z -"][1]) - normed(y_SM)) / np.sqrt(normed(xy_dict["g1z -"][1]))
+  s_ka_P  = np.abs(normed(xy_dict["ka +"][1]) - normed(y_SM)) / np.sqrt(normed(xy_dict["ka +"][1]))
+  s_ka_M  = np.abs(normed(xy_dict["ka -"][1]) - normed(y_SM)) / np.sqrt(normed(xy_dict["ka -"][1]))
+  s_la_P  = np.abs(normed(xy_dict["la +"][1]) - normed(y_SM)) / np.sqrt(normed(xy_dict["la +"][1]))
+  s_la_M  = np.abs(normed(xy_dict["la -"][1]) - normed(y_SM)) / np.sqrt(normed(xy_dict["la -"][1]))
+  
+  p_g1z_P = ax.hist(x, weights=s_g1z_P, label=r"$\Delta g_1^{Z} = +\delta$", ls="dashed", alpha=0.9, lw=3, range=hist_range, bins=n_bins, histtype=u'step')
+  g1z_color = PMH.get_hist_color(p_g1z_P)
+  p_g1z_M = ax.hist(x, weights=s_g1z_M, label=r"$\Delta g_1^{Z} = -\delta$", ls="dotted", color=g1z_color, alpha=0.9, lw=3, range=hist_range, bins=n_bins, histtype=u'step')
+  
+  p_ka_P = ax.hist(x, weights=s_ka_P, label=r"$\Delta \kappa_{\gamma} = +\delta$", ls="dashed", alpha=0.9, lw=3, range=hist_range, bins=n_bins, histtype=u'step')
+  ka_color = PMH.get_hist_color(p_ka_P)
+  p_ka_M = ax.hist(x, weights=s_ka_M, label=r"$\Delta \kappa_{\gamma} = -\delta$", ls="dotted", color=ka_color, alpha=0.9, lw=3, range=hist_range, bins=n_bins, histtype=u'step')
+  
+  p_la_P = ax.hist(x, weights=s_la_P, label=r"$\Delta \lambda_{\gamma} = +\delta$", ls="dashed", alpha=0.9, lw=3, range=hist_range, bins=n_bins, histtype=u'step')
+  la_color = PMH.get_hist_color(p_la_P)
+  p_la_M = ax.hist(x, weights=s_la_M, label=r"$\Delta \lambda_{\gamma} = -\delta$", ls="dotted", color=la_color, alpha=0.9, lw=3, range=hist_range, bins=n_bins, histtype=u'step')
+  
+  
 def create_reweighting_plot(xy_dict, output_base, obs_name, obs_range, 
                             lumi, SM_xsection, dev_scale, 
                             output_formats=["pdf","png"]):
@@ -72,19 +79,18 @@ def create_reweighting_plot(xy_dict, output_base, obs_name, obs_range,
   n_bins = obs_range[0]
   hist_range=(obs_range[1],obs_range[2])
   
-  add_abs_dev_plot(ax_up, x, xy_dict, n_bins, hist_range)
+  # Upper plot: Relative deviation wrt. SM
+  add_rel_dev_plot(ax_up, x, xy_dict, n_bins, hist_range, SM_xsection, lumi)
   
-  ax_up.set_ylabel("#MC Events")
-  ax_up.set_yscale('log')
-  ax_up.legend(ncol=3, fontsize=13, loc='lower center', title=r"$\delta={}$".format(dev_scale), title_fontsize=13)
-  ax_up.set_xlim(hist_range)
+  ax_up.set_ylabel(r"$\frac{\# weighted - \# SM}{\# SM} [\%]$", fontsize=30)
   
-  # Calculate the relative ratios
-  add_rel_dev_plot(ax_down, x, xy_dict, SM_xsection, lumi)
+  # Lower plot: Significance of deviation (in case it would be measured)
+  add_dev_sig_plot(ax_down, x, xy_dict, n_bins, hist_range, SM_xsection, lumi)  
   
-  ax_down.legend(fontsize=17)
-  
-  ax_down.set_ylabel(r"$\frac{\# weighted - \# SM}{\# SM} [\%]$")
+  ax_down.set_ylabel(r"$\frac{\# weighted - \# SM}{\sqrt{\# weighted}}$", fontsize=30)
+  ax_down.legend(ncol=3, fontsize=16, title=r"$\delta={}$, $L={}$ab$^{{-1}}$".format(dev_scale, lumi/1000), title_fontsize=16)
+  ax_down.set_xlim(hist_range)
+  ax_down.set_ylim(0, ax_down.get_ylim()[1])
   ax_down.set_xlabel(obs_name)
 
   for format in output_formats:
@@ -166,7 +172,7 @@ def main():
                   "costh_l_star" :      (30, -1., 1.),
                   "phi_l_star":         (30, 0., np.pi) }
   
-  lumi = 2000 # 2ab^-1 to calculate the expected SM uncertainty
+  lumi = 1000 # 2ab^-1 total ~> 1ab^-1 for each of the two allowed chiral states
   
   RL_path = "/nfs/dust/ilc/group/ild/beyerjac/TGCAnalysis/SampleProduction/NewMCProduction/4f_WW_sl/4f_WW_sl_eR_pL.root"
   LR_path = "/nfs/dust/ilc/group/ild/beyerjac/TGCAnalysis/SampleProduction/NewMCProduction/4f_WW_sl/4f_WW_sl_eL_pR.root"
