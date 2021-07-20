@@ -170,7 +170,7 @@ def main():
   
   observables = { "costh_Wminus_star" : (30, -1., 1.),
                   "costh_l_star" :      (30, -1., 1.),
-                  "phi_l_star":         (30, 0., np.pi) }
+                  "phi_l_star":         (30, -np.pi, np.pi) }
   
   lumi = 1000 # 2ab^-1 total ~> 1ab^-1 for each of the two allowed chiral states
   
