@@ -89,7 +89,7 @@ def main():
   
   observables = { "costh_Wminus_star" : (30, -1., 1.),
                   "costh_l_star" :      (30, -1., 1.),
-                  "phi_l_star":         (30, 0., np.pi) }
+                  "phi_l_star":         (30, -np.pi, np.pi) }
   
   LR_file = "/nfs/dust/ilc/group/ild/beyerjac/TGCAnalysis/SampleProduction/NewMCProduction/4f_WW_sl/4f_WW_sl_eL_pR.root"
   RL_file = "/nfs/dust/ilc/group/ild/beyerjac/TGCAnalysis/SampleProduction/NewMCProduction/4f_WW_sl/4f_WW_sl_eR_pL.root"
