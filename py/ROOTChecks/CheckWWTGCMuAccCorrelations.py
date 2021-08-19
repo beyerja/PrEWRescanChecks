@@ -31,7 +31,7 @@ def TGC_gradiant(y_TGC, y_SM, dev_scale, n_MC, SM_xsection, lumi):
       y_TGC represents the distribution for a change of dev_scale in one TGC.
       Assumes only linear dependence on the TGC.
   """
-  return y_SM * SM_xsection / (n_MC * dev_scale) * (1.0 - ratio(y_TGC,y_SM))
+  return y_SM * SM_xsection / (n_MC * dev_scale) * (ratio(y_TGC,y_SM)-1.0)
 
 
 def add_derivative_plot(ax, TGC_name, xy_dict, n_bins, hist_range, dev_scale,
