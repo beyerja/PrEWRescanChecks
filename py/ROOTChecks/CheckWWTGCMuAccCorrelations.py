@@ -24,7 +24,7 @@ TGC_name_map = {
 def ratio(a,b):
   """ Calculate ratio between two arrays, if denominator point is 0 set ratio=1.
   """
-  return np.where(np.abs(b)>0.01,a/b,a)
+  return np.where(np.abs(b)>0.01,a/b,1.0)
 
 def TGC_lin_coef(y_TGC, y_SM, dev_scale):
   """ Calculate the normalised gradient wrt. to the TGC at the SM point.
