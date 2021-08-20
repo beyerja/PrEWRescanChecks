@@ -49,8 +49,8 @@ def add_derivative_plot(ax, TGC_name, xy_dict, n_bins, hist_range, dev_scale):
   
   ax.hist(x, weights=d_P_nocut, alpha=0.9, lw=3, range=hist_range, bins=n_bins, histtype=u'step', label="no cut")
   ax.hist(x, weights=d_P_cut, alpha=0.9, lw=3, range=hist_range, bins=n_bins, histtype=u'step', label="7deg-cut")
-  ax.hist(x, weights=d_P_dc, alpha=0.9, lw=3, range=hist_range, bins=n_bins, histtype=u'step', label="$\Delta c += \delta_{cut}$")
-  ax.hist(x, weights=d_P_dw, alpha=0.9, lw=3, range=hist_range, bins=n_bins, histtype=u'step', label="$\Delta w += \delta_{cut}$")
+  ax.hist(x, weights=d_P_dc, alpha=0.9, lw=3, range=hist_range, bins=n_bins, histtype=u'step', label="$\Delta c $+=$ \delta_{cut}$")
+  ax.hist(x, weights=d_P_dw, alpha=0.9, lw=3, range=hist_range, bins=n_bins, histtype=u'step', label="$\Delta w $+=$ \delta_{cut}$")
 
 def add_rel_change_plot(ax, TGC_name, xy_dict, n_bins, hist_range, dev_scale):
   """ Add the plots showing the relative change from the SM for different cut 
@@ -92,7 +92,7 @@ def create_reweighting_plot(xy_dict, output_base, obs_name, obs_range,
     # Upper plot
     add_derivative_plot(ax_up, TGC_name, xy_dict, n_bins, hist_range, dev_scale)
     
-    ax_up.set_ylabel(r"$\frac{{1}}{{\sigma^{{bin}}}}\frac{{d\sigma^{{bin}}}}{{d {}}} [\frac{{fb}}{{1}}]$".format(TGC_name_map[TGC_name]), fontsize=30)
+    ax_up.set_ylabel(r"$\frac{{1}}{{\sigma^{{bin}}}}\frac{{d\sigma^{{bin}}}}{{d {}}}$".format(TGC_name_map[TGC_name]), fontsize=30)
     ax_up.set_xlim(hist_range)
 
     ax_up.legend(fontsize=16, title="${}{}$, $\delta_{{cut}}={}$".format(eM_chi, eP_chi, dev_scale, cut_dev), title_fontsize=16)
