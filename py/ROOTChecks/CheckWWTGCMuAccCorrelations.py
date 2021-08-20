@@ -116,7 +116,7 @@ def check_reweighting(root_file, tgc_config_path, tgc_point_path, output_dir,
   """ Check what reweighting does to the observable distributions for the given 
       events in the ROOT file.
   """
-  rdf = ROOT.RDataFrame(tree_name, root_file).Range(0,300000).Filter("rescan_weights.weight1 > 0.01")
+  rdf = ROOT.RDataFrame(tree_name, root_file).Filter("rescan_weights.weight1 > 0.01")
   
   # Muon Acceptance related setup
   cut_val = 0.9925 # 7deg
