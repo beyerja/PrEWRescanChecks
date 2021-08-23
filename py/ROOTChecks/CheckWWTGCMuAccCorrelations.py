@@ -52,7 +52,7 @@ def add_derivative_plot(ax, TGC_name, xy_dict, n_bins, hist_range, dev_scale):
   ax.hist(x, weights=d_P_dc, alpha=0.9, lw=3, range=hist_range, bins=n_bins, histtype=u'step', label="$\Delta c $+=$ \delta_{cut}$")
   ax.hist(x, weights=d_P_dw, alpha=0.9, lw=3, range=hist_range, bins=n_bins, histtype=u'step', label="$\Delta w $+=$ \delta_{cut}$")
 
-def add_rel_change_plot(ax, TGC_name, xy_dict, n_bins, hist_range, dev_scale):
+def add_diff_plot(ax, TGC_name, xy_dict, n_bins, hist_range, dev_scale):
   """ Add the plots showing the relative change from the SM for different cut 
       values.
   """
@@ -65,15 +65,15 @@ def add_rel_change_plot(ax, TGC_name, xy_dict, n_bins, hist_range, dev_scale):
   grad_P_dc = TGC_grad(xy_dict["c shift"][TGC_name][1], xy_dict["c shift"]["SM"][1])
   grad_P_dw = TGC_grad(xy_dict["w shift"][TGC_name][1], xy_dict["w shift"]["SM"][1])
 
-  rel_P_cut = ratio(grad_P_cut, grad_P_nocut) - 1.0
-  rel_P_dc = ratio(grad_P_dc, grad_P_nocut) - 1.0
-  rel_P_dw = ratio(grad_P_dw, grad_P_nocut) - 1.0
+  diff_P_cut = grad_P_cut - grad_P_nocut
+  diff_P_dc = grad_P_dc - grad_P_nocut
+  diff_P_dw = grad_P_dw - grad_P_nocut
 
-  scale=100.0
+  scale=1.0
   ax.hist([], alpha=0.9, lw=3, range=hist_range, bins=n_bins, histtype=u'step')
-  ax.hist(x, weights=rel_P_cut*scale, alpha=0.9, lw=3, range=hist_range, bins=n_bins, histtype=u'step')
-  ax.hist(x, weights=rel_P_dc*scale, alpha=0.9, lw=3, range=hist_range, bins=n_bins, histtype=u'step')
-  ax.hist(x, weights=rel_P_dw*scale, alpha=0.9, lw=3, range=hist_range, bins=n_bins, histtype=u'step')
+  ax.hist(x, weights=diff_P_cut*scale, alpha=0.9, lw=3, range=hist_range, bins=n_bins, histtype=u'step')
+  ax.hist(x, weights=diff_P_dc*scale, alpha=0.9, lw=3, range=hist_range, bins=n_bins, histtype=u'step')
+  ax.hist(x, weights=diff_P_dw*scale, alpha=0.9, lw=3, range=hist_range, bins=n_bins, histtype=u'step')
 
   
 def create_reweighting_plot(xy_dict, output_base, obs_name, obs_range, 
@@ -98,8 +98,8 @@ def create_reweighting_plot(xy_dict, output_base, obs_name, obs_range,
     ax_up.legend(fontsize=16, title="${}{}$, $\delta_{{cut}}={}$".format(eM_chi, eP_chi, dev_scale, cut_dev), title_fontsize=16)
     
     # Lower plot
-    add_rel_change_plot(ax_down, TGC_name, xy_dict, n_bins, hist_range, dev_scale)  
-    ax_down.set_ylabel(r"$\frac{y_{cut}-y_{nocut}}{y_{nocut}}$ [%]")
+    add_diff_plot(ax_down, TGC_name, xy_dict, n_bins, hist_range, dev_scale)  
+    ax_down.set_ylabel(r"$y_{cut}-y_{nocut}$")
     ax_down.set_xlabel(obs_name)
     
 
