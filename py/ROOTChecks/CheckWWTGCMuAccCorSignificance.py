@@ -10,6 +10,7 @@ import IO.SysHelpers as ISH
 import IO.TGCConfigReader as ITCR
 import Plotting.DefaultFormat as PDF
 import Plotting.Naming as PN
+import Plotting.RDFHelp as PRH
 import Plotting.ROOTHistHelp as PRHH
 import Systematics.MuonAcceptance as SMA
 
@@ -69,10 +70,9 @@ def add_cor_sig_plot(ax, y_dict, MC_norm):
   scatter = ax.scatter(chisq_delta_arr, chisq_cor_arr, label=label)
   
 def create_cor_sig_plot(y_dict, output_base, dev_scale, c_cut_dev, w_cut_dev, 
-                        MC_norm, output_formats=["pdf","png"]):
+                        MC_norm, process_str, output_formats=["pdf","png"]):
   """ Create the correlation significance plot for one observable.
   """
-  eM_chi, eP_chi = PN.chirality_str(IFH.find_chirality(output_base))
   fig, ax = plt.subplots(tight_layout=True, figsize=(8,6))
   
   add_cor_sig_plot(ax, y_dict, MC_norm)
@@ -83,7 +83,7 @@ def create_cor_sig_plot(y_dict, output_base, dev_scale, c_cut_dev, w_cut_dev,
   ax.set_xscale('log')
   ax.set_ylim(0, ax.get_ylim()[1])
   
-  legend_title = "${}{}$\n$\delta_{{TGC}} = {},$\n$\delta_{{c}}^{{\mu-acc.}} = {},$\n$\delta_{{w}}^{{\mu-acc.}} = {}$".format(eM_chi, eP_chi, dev_scale, c_cut_dev, w_cut_dev)
+  legend_title = "${}$\n$\delta_{{TGC}} = {},$\n$\delta_{{c}}^{{\mu-acc.}} = {},$\n$\delta_{{w}}^{{\mu-acc.}} = {}$".format(process_str, dev_scale, c_cut_dev, w_cut_dev)
   ax.legend(title=legend_title, loc='upper left')
 
   for format in output_formats:
@@ -94,11 +94,12 @@ def create_cor_sig_plot(y_dict, output_base, dev_scale, c_cut_dev, w_cut_dev,
   plt.close(fig)
 
 def check_cor_sig(root_file, tgc_config_path, tgc_point_path, output_dir,
-                  observables, lumi, tree_name = "WWObservables"):
+                  observables, mu_charge, lumi, tree_name = "WWObservables"):
   """ Check if the muon acceptance and the TGC deviations can be factorized
       for the given events in the ROOT file.
   """
-  rdf = ROOT.RDataFrame(tree_name, root_file).Filter("rescan_weights.weight1 > 0.01")
+  rdf = PRH.skip_0weight(ROOT.RDataFrame(tree_name, root_file))
+  mu_rdf = PRH.select_mu(rdf, mu_charge)
   
   # Muon Acceptance related setup
   cut_val = 0.9925 # 7deg
@@ -107,19 +108,21 @@ def check_cor_sig(root_file, tgc_config_path, tgc_point_path, output_dir,
   costh_branch="costh_l"
   
   mu_acc_rdf_dict = {
-    "no cut": rdf,
-    "cut": rdf.Filter(SMA.get_costh_cut(cut_val, 0, 0, costh_branch)),
-    "c shift +": rdf.Filter(SMA.get_costh_cut(cut_val, +c_cut_dev, 0, costh_branch)),
-    "c shift -": rdf.Filter(SMA.get_costh_cut(cut_val, -c_cut_dev, 0, costh_branch)),
-    "w shift +": rdf.Filter(SMA.get_costh_cut(cut_val, 0, +w_cut_dev, costh_branch)),
-    "w shift -": rdf.Filter(SMA.get_costh_cut(cut_val, 0, -w_cut_dev, costh_branch)),
+    "no cut": mu_rdf,
+    "cut": mu_rdf.Filter(SMA.get_costh_cut(cut_val, 0, 0, costh_branch)),
+    "c shift +": mu_rdf.Filter(SMA.get_costh_cut(cut_val, +c_cut_dev, 0, costh_branch)),
+    "c shift -": mu_rdf.Filter(SMA.get_costh_cut(cut_val, -c_cut_dev, 0, costh_branch)),
+    "w shift +": mu_rdf.Filter(SMA.get_costh_cut(cut_val, 0, +w_cut_dev, costh_branch)),
+    "w shift -": mu_rdf.Filter(SMA.get_costh_cut(cut_val, 0, -w_cut_dev, costh_branch)),
   }
   
   # TGC related setup
   tcr = ITCR.TGCConfigReader(tgc_config_path, tgc_point_path)
   
   chirality = IFH.find_chirality(root_file)
-  output_base = "{}/TGCMuAccCorSignificance/{}/".format(output_dir,chirality)
+  output_base = "{}/TGCMuAccCorSignificance/mu{}/{}/".format(
+                  output_dir, PN.sign_str(mu_charge,spelled=True), chirality)
+  process_str = PN.process_str(chirality, mu_charge)
   
   index_dict = {
     "g1z +": tcr.point_index([1,0,0]),
@@ -165,7 +168,11 @@ def check_cor_sig(root_file, tgc_config_path, tgc_point_path, output_dir,
         h_def, obs_names[0], obs_names[1], obs_names[2], weight_name)
   
   # Book finding the cross section
-  SM_xsection = rdf.Mean("cross_section")
+  SM_xsection = mu_rdf.Mean("cross_section")
+  
+  # Calculate the normalisation of the MC events
+  n_MC = rdf.Count() # Use the original rdf with all MC events (except 0-weight)
+  MC_norm = SM_xsection.GetValue() * lumi / n_MC.GetValue()
   
   # Make the plots for each observable
   y_dict = {}
@@ -176,12 +183,8 @@ def check_cor_sig(root_file, tgc_config_path, tgc_point_path, output_dir,
     for point, hist in cut_dict.items():
       y_dict[cut_name][point] = PRHH.TH3_to_arrays(hist)[1]
   
-  # Calculate the normalisation of the MC events
-  n_MC = np.sum(y_dict["no cut"]["SM"])
-  MC_norm = SM_xsection.GetValue() * lumi / n_MC
-  
   create_cor_sig_plot(y_dict, output_base, dev_scale, c_cut_dev, w_cut_dev, 
-                      MC_norm)
+                      MC_norm, process_str)
       
 def main():
   ROOT.EnableImplicitMT(7) # Enable multithreading in RDataFrame
@@ -204,8 +207,10 @@ def main():
   RL_path = "/nfs/dust/ilc/group/ild/beyerjac/TGCAnalysis/SampleProduction/NewMCProduction/4f_WW_sl/4f_WW_sl_eR_pL.root"
   LR_path = "/nfs/dust/ilc/group/ild/beyerjac/TGCAnalysis/SampleProduction/NewMCProduction/4f_WW_sl/4f_WW_sl_eL_pR.root"
   
-  check_cor_sig(RL_path, tgc_config_path, tgc_point_path, output_dir, observables, lumi)
-  check_cor_sig(LR_path, tgc_config_path, tgc_point_path, output_dir, observables, lumi)
+  check_cor_sig(RL_path, tgc_config_path, tgc_point_path, output_dir, observables, +1, lumi)
+  check_cor_sig(RL_path, tgc_config_path, tgc_point_path, output_dir, observables, -1, lumi)
+  check_cor_sig(LR_path, tgc_config_path, tgc_point_path, output_dir, observables, +1, lumi)
+  check_cor_sig(LR_path, tgc_config_path, tgc_point_path, output_dir, observables, -1, lumi)
   
 
 if __name__ == "__main__":

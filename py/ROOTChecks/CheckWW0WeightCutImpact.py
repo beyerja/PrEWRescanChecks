@@ -9,6 +9,8 @@ sys.path.append("../Helpers")
 import IO.FilenameHelp as IFH
 import IO.SysHelpers as ISH
 import Plotting.DefaultFormat as PDF
+import Plotting.Naming as PN
+import Plotting.RDFHelp as PRH
 import Plotting.ROOTHistHelp as PRHH
 
 def create_comparison_plot(x, y_cut, y_nocut, output_base, 
@@ -47,16 +49,17 @@ def create_comparison_plot(x, y_cut, y_nocut, output_base,
 
   plt.close(fig)
 
-def check_0weight_cut(root_file, output_dir, observables,
+def check_0weight_cut(root_file, output_dir, observables, mu_charge,
                       tree_name = "WWObservables"):
   """ Create all 0-weight cut comparisons for the given observables on this ROOT
       file.
   """
-  rdf = ROOT.RDataFrame(tree_name, root_file)
-  rdf_no_0_w1 = rdf.Filter("rescan_weights.weight1 > 0.01")
+  rdf = PRH.select_mu(ROOT.RDataFrame(tree_name, root_file), mu_charge)
+  rdf_no_0_w1 = PRH.skip_0weight(rdf)
   
   chirality = IFH.find_chirality(root_file)
-  output_base = "{}/ZeroWeightCut/{}/".format(output_dir,chirality)
+  output_base = "{}/ZeroWeightCut/mu{}/{}/".format(
+                  output_dir, PN.sign_str(mu_charge,spelled=True), chirality)
   
   # First "lazy" definition of histograms, cummulating the tasks that are to be 
   # performed on the rdf
@@ -94,8 +97,10 @@ def main():
   LR_file = "/nfs/dust/ilc/group/ild/beyerjac/TGCAnalysis/SampleProduction/NewMCProduction/4f_WW_sl/4f_WW_sl_eL_pR.root"
   RL_file = "/nfs/dust/ilc/group/ild/beyerjac/TGCAnalysis/SampleProduction/NewMCProduction/4f_WW_sl/4f_WW_sl_eR_pL.root"
 
-  check_0weight_cut(LR_file, output_dir, observables)
-  check_0weight_cut(RL_file, output_dir, observables)
+  check_0weight_cut(RL_file, output_dir, observables, +1)
+  check_0weight_cut(RL_file, output_dir, observables, -1)
+  check_0weight_cut(LR_file, output_dir, observables, +1)
+  check_0weight_cut(LR_file, output_dir, observables, -1)
 
 if __name__ == "__main__":
   main()

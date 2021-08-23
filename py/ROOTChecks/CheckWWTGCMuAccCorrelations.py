@@ -12,6 +12,7 @@ import IO.TGCConfigReader as ITCR
 import Plotting.DefaultFormat as PDF
 import Plotting.MPLHelp as PMH
 import Plotting.Naming as PN
+import Plotting.RDFHelp as PRH
 import Plotting.ROOTHistHelp as PRHH
 import Systematics.MuonAcceptance as SMA
 
@@ -38,7 +39,6 @@ def add_derivative_plot(ax, TGC_name, xy_dict, n_bins, hist_range, dev_scale):
   """ Add the plots showing the derivative of the cross section in each bin wrt.
       the TGC.
   """
-  n_MC = np.sum(xy_dict["no cut"]["SM"][1])
   TGC_grad = functools.partial(TGC_lin_coef, dev_scale=dev_scale)
   
   x = xy_dict["no cut"]["SM"][0]
@@ -56,7 +56,6 @@ def add_diff_plot(ax, TGC_name, xy_dict, n_bins, hist_range, dev_scale):
   """ Add the plots showing the relative change from the SM for different cut 
       values.
   """
-  n_MC = np.sum(xy_dict["no cut"]["SM"][1])
   TGC_grad = functools.partial(TGC_lin_coef, dev_scale=dev_scale)
 
   x = xy_dict["no cut"]["SM"][0]
@@ -77,11 +76,10 @@ def add_diff_plot(ax, TGC_name, xy_dict, n_bins, hist_range, dev_scale):
 
   
 def create_reweighting_plot(xy_dict, output_base, obs_name, obs_range, 
-                            dev_scale, cut_dev, output_formats=["pdf","png"]):
+                            dev_scale, cut_dev, process_str,
+                            output_formats=["pdf","png"]):
   """ Create the reweighting plot for one observable.
   """
-  eM_chi, eP_chi = PN.chirality_str(IFH.find_chirality(output_base))
-  
   for TGC_name in ["g1z", "ka", "la"]:
     fig, axs = plt.subplots(2, 1, sharex=True, tight_layout=True, figsize=(10,10))
     ax_up, ax_down = axs
@@ -95,14 +93,13 @@ def create_reweighting_plot(xy_dict, output_base, obs_name, obs_range,
     ax_up.set_ylabel(r"$\frac{{1}}{{\sigma^{{bin}}}}\frac{{d\sigma^{{bin}}}}{{d {}}}$".format(TGC_name_map[TGC_name]), fontsize=30)
     ax_up.set_xlim(hist_range)
 
-    ax_up.legend(fontsize=16, title="${}{}$, $\delta_{{cut}}={}$".format(eM_chi, eP_chi, dev_scale, cut_dev), title_fontsize=16)
+    ax_up.legend(fontsize=16, title="${}$, $\delta_{{cut}}={}$".format(process_str, dev_scale, cut_dev), title_fontsize=16)
     
     # Lower plot
     add_diff_plot(ax_down, TGC_name, xy_dict, n_bins, hist_range, dev_scale)  
     ax_down.set_ylabel(r"$y_{cut}-y_{nocut}$")
     ax_down.set_xlabel(obs_name)
     
-
     for format in output_formats:
       format_dir = "{}/{}".format(output_base,format)
       ISH.create_dir(format_dir)
@@ -112,11 +109,12 @@ def create_reweighting_plot(xy_dict, output_base, obs_name, obs_range,
     plt.close(fig)
 
 def check_reweighting(root_file, tgc_config_path, tgc_point_path, output_dir,
-                      observables, tree_name = "WWObservables"):
+                      observables, mu_charge, tree_name = "WWObservables"):
   """ Check what reweighting does to the observable distributions for the given 
       events in the ROOT file.
   """
-  rdf = ROOT.RDataFrame(tree_name, root_file).Filter("rescan_weights.weight1 > 0.01")
+  rdf = PRH.skip_0weight(ROOT.RDataFrame(tree_name, root_file))
+  mu_rdf = PRH.select_mu(rdf, mu_charge)
   
   # Muon Acceptance related setup
   cut_val = 0.9925 # 7deg
@@ -124,17 +122,19 @@ def check_reweighting(root_file, tgc_config_path, tgc_point_path, output_dir,
   costh_branch="costh_l"
   
   mu_acc_rdf_dict = {
-    "no cut": rdf,
-    "cut": rdf.Filter(SMA.get_costh_cut(cut_val, 0, 0, costh_branch)),
-    "c shift": rdf.Filter(SMA.get_costh_cut(cut_val, cut_dev, 0, costh_branch)),
-    "w shift": rdf.Filter(SMA.get_costh_cut(cut_val, 0, cut_dev, costh_branch))
+    "no cut": mu_rdf,
+    "cut": mu_rdf.Filter(SMA.get_costh_cut(cut_val, 0, 0, costh_branch)),
+    "c shift": mu_rdf.Filter(SMA.get_costh_cut(cut_val, cut_dev, 0, costh_branch)),
+    "w shift": mu_rdf.Filter(SMA.get_costh_cut(cut_val, 0, cut_dev, costh_branch))
   }
   
   # TGC related setup
   tcr = ITCR.TGCConfigReader(tgc_config_path, tgc_point_path)
   
   chirality = IFH.find_chirality(root_file)
-  output_base = "{}/TGCMuAccCorrelations/{}/".format(output_dir,chirality)
+  output_base = "{}/TGCMuAccCorrelations/mu{}/{}/".format(
+                  output_dir, PN.sign_str(mu_charge,spelled=True), chirality)
+  process_str = PN.process_str(chirality, mu_charge)
   
   index_dict = {
     "g1z": tcr.point_index([1,0,0]),
@@ -176,7 +176,7 @@ def check_reweighting(root_file, tgc_config_path, tgc_point_path, output_dir,
       for point, hist in cut_dict.items():
         xy_dict[cut_name][point] = PRHH.TH1_to_arrays(hist) 
     create_reweighting_plot(xy_dict, output_base, obs_name, obs_range, 
-                            dev_scale, cut_dev)
+                            dev_scale, cut_dev, process_str)
       
 def main():
   """ Create check plots that investigate how the weights in the given ROOT file
@@ -199,8 +199,10 @@ def main():
   RL_path = "/nfs/dust/ilc/group/ild/beyerjac/TGCAnalysis/SampleProduction/NewMCProduction/4f_WW_sl/4f_WW_sl_eR_pL.root"
   LR_path = "/nfs/dust/ilc/group/ild/beyerjac/TGCAnalysis/SampleProduction/NewMCProduction/4f_WW_sl/4f_WW_sl_eL_pR.root"
   
-  check_reweighting(RL_path, tgc_config_path, tgc_point_path, output_dir, observables)
-  check_reweighting(LR_path, tgc_config_path, tgc_point_path, output_dir, observables)
+  check_reweighting(RL_path, tgc_config_path, tgc_point_path, output_dir, observables, +1)
+  check_reweighting(RL_path, tgc_config_path, tgc_point_path, output_dir, observables, -1)
+  check_reweighting(LR_path, tgc_config_path, tgc_point_path, output_dir, observables, +1)
+  check_reweighting(LR_path, tgc_config_path, tgc_point_path, output_dir, observables, -1)
   
 
 if __name__ == "__main__":

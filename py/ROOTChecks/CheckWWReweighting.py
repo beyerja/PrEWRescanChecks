@@ -10,9 +10,11 @@ import IO.SysHelpers as ISH
 import IO.TGCConfigReader as ITCR
 import Plotting.DefaultFormat as PDF
 import Plotting.MPLHelp as PMH
+import Plotting.Naming as PN
+import Plotting.RDFHelp as PRH
 import Plotting.ROOTHistHelp as PRHH
 
-def add_rel_dev_plot(ax, x, xy_dict, n_bins, hist_range, SM_xsection, lumi):
+def add_rel_dev_plot(ax, x, xy_dict, n_bins, hist_range, lumi):
   """ Add the plots showing the relative deviations from the SM.
   """
   y_SM = xy_dict["SM"][1]
@@ -38,12 +40,12 @@ def add_rel_dev_plot(ax, x, xy_dict, n_bins, hist_range, SM_xsection, lumi):
   la_color = PMH.get_hist_color(p_la_P)
   p_la_M = ax.hist(x, weights=d_la_M * scale, ls="dotted", color=la_color, alpha=0.9, lw=3, range=hist_range, bins=n_bins, histtype=u'step')
 
-def add_dev_sig_plot(ax, x, xy_dict, n_bins, hist_range, SM_xsection, lumi):
+def add_dev_sig_plot(ax, x, xy_dict, n_bins, hist_range, MC_norm):
   """ Add the plots showing the significance of each deviation.
   """
   y_SM = xy_dict["SM"][1]
   n_MC = np.sum(y_SM)
-  normed = lambda y: y * SM_xsection * lumi / n_MC
+  normed = lambda y: y * MC_norm
   
   # significance here: 
   # how many sigma if we see signal? => (signal - background) / sqrt(signal)
@@ -68,7 +70,7 @@ def add_dev_sig_plot(ax, x, xy_dict, n_bins, hist_range, SM_xsection, lumi):
   
   
 def create_reweighting_plot(xy_dict, output_base, obs_name, obs_range, 
-                            lumi, SM_xsection, dev_scale, 
+                            lumi, MC_norm, dev_scale, 
                             output_formats=["pdf","png"]):
   """ Create the reweighting plot for one observable.
   """
@@ -80,12 +82,12 @@ def create_reweighting_plot(xy_dict, output_base, obs_name, obs_range,
   hist_range=(obs_range[1],obs_range[2])
   
   # Upper plot: Relative deviation wrt. SM
-  add_rel_dev_plot(ax_up, x, xy_dict, n_bins, hist_range, SM_xsection, lumi)
+  add_rel_dev_plot(ax_up, x, xy_dict, n_bins, hist_range, lumi)
   
   ax_up.set_ylabel(r"$\frac{\# weighted - \# SM}{\# SM} [\%]$", fontsize=30)
   
   # Lower plot: Significance of deviation (in case it would be measured)
-  add_dev_sig_plot(ax_down, x, xy_dict, n_bins, hist_range, SM_xsection, lumi)  
+  add_dev_sig_plot(ax_down, x, xy_dict, n_bins, hist_range, MC_norm)  
   
   ax_down.set_ylabel(r"$\frac{\# weighted - \# SM}{\sqrt{\# weighted}}$", fontsize=30)
   ax_down.legend(ncol=3, fontsize=16, title=r"$\delta={}$, $L={}$ab$^{{-1}}$".format(dev_scale, lumi/1000), title_fontsize=16)
@@ -102,15 +104,18 @@ def create_reweighting_plot(xy_dict, output_base, obs_name, obs_range,
 
 
 def check_reweighting(root_file, tgc_config_path, tgc_point_path, output_dir,
-                      observables, lumi, tree_name = "WWObservables"):
+                      observables, mu_charge, lumi, 
+                      tree_name = "WWObservables"):
   """ Check what reweighting does to the observable distributions for the given 
       events in the ROOT file.
   """
-  rdf = ROOT.RDataFrame(tree_name, root_file).Filter("rescan_weights.weight1 > 0.01")
+  rdf = PRH.skip_0weight(ROOT.RDataFrame(tree_name, root_file))
+  mu_rdf = PRH.select_mu(rdf, mu_charge)
   tcr = ITCR.TGCConfigReader(tgc_config_path, tgc_point_path)
   
   chirality = IFH.find_chirality(root_file)
-  output_base = "{}/ReweightCheck/{}/".format(output_dir,chirality)
+  output_base = "{}/ReweightCheck/mu{}/{}/".format(
+                  output_dir, PN.sign_str(mu_charge,spelled=True), chirality)
   
   index_dict = {
     "g1z +": tcr.point_index([1,0,0]),
@@ -132,7 +137,7 @@ def check_reweighting(root_file, tgc_config_path, tgc_point_path, output_dir,
     # Standard model histograms for comparison
     h_SM_def = (obs_name+"SM", obs_name+"SM", 
                 obs_range[0], obs_range[1], obs_range[2])
-    hist_dict[obs_name]["SM"] = rdf.Histo1D(h_SM_def, obs_name)
+    hist_dict[obs_name]["SM"] = mu_rdf.Histo1D(h_SM_def, obs_name)
     
     # Histograms with TGC deviation
     for point, index in index_dict.items():
@@ -140,10 +145,14 @@ def check_reweighting(root_file, tgc_config_path, tgc_point_path, output_dir,
       h_def = (obs_name+"_w"+i_str, obs_name+"_w"+i_str, 
                obs_range[0], obs_range[1], obs_range[2])
       weight_name = "rescan_weights.weight"+i_str
-      hist_dict[obs_name][point] = rdf.Histo1D(h_def, obs_name, weight_name)
+      hist_dict[obs_name][point] = mu_rdf.Histo1D(h_def, obs_name, weight_name)
     
   # Get the SM cross section, needed for correct uncertainty weighting
-  SM_xsection = rdf.Mean("cross_section")
+  SM_xsection = mu_rdf.Mean("cross_section")
+      
+  # Calculate the normalisation of the MC events
+  n_MC = rdf.Count() # Use the original rdf with all MC events (except 0-weight)
+  MC_norm = SM_xsection.GetValue() * lumi / n_MC.GetValue()
       
   # Make the plots for each observable
   for obs_name, obs_range in observables.items():
@@ -152,7 +161,7 @@ def check_reweighting(root_file, tgc_config_path, tgc_point_path, output_dir,
     for point, hist in hist_dict[obs_name].items():
       xy_dict[point] = PRHH.TH1_to_arrays(hist) 
     create_reweighting_plot(xy_dict, output_base, obs_name, obs_range, lumi, 
-                            SM_xsection.GetValue(), dev_scale)
+                            MC_norm, dev_scale)
       
 def main():
   """ Create check plots that investigate how the weights in the given ROOT file
@@ -177,8 +186,10 @@ def main():
   RL_path = "/nfs/dust/ilc/group/ild/beyerjac/TGCAnalysis/SampleProduction/NewMCProduction/4f_WW_sl/4f_WW_sl_eR_pL.root"
   LR_path = "/nfs/dust/ilc/group/ild/beyerjac/TGCAnalysis/SampleProduction/NewMCProduction/4f_WW_sl/4f_WW_sl_eL_pR.root"
   
-  check_reweighting(RL_path, tgc_config_path, tgc_point_path, output_dir, observables, lumi)
-  check_reweighting(LR_path, tgc_config_path, tgc_point_path, output_dir, observables, lumi)
+  check_reweighting(RL_path, tgc_config_path, tgc_point_path, output_dir, observables, +1, lumi)
+  check_reweighting(RL_path, tgc_config_path, tgc_point_path, output_dir, observables, -1, lumi)
+  check_reweighting(LR_path, tgc_config_path, tgc_point_path, output_dir, observables, +1, lumi)
+  check_reweighting(LR_path, tgc_config_path, tgc_point_path, output_dir, observables, -1, lumi)
   
 
 if __name__ == "__main__":

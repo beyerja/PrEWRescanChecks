@@ -18,3 +18,26 @@ def chirality_str(chirality):
     
   return eM_chi, eP_chi
   
+def sign_str(num, spelled=False):
+  """ Return the sign of the number as string, either just the sign or spelled.
+  """
+  if spelled:
+    if num >= 0:
+      return "plus"
+    else:
+      return "minus"
+  else:
+    if num >= 0:
+      return "+"
+    else:
+      return "-"
+  
+def process_str(chirality, mu_charge):
+  """ Return the latex math string that describes the semilept. WW process with
+      the given chirality and muon charge.
+  """
+  eM_chi, eP_chi = chirality_str(chirality)
+  charge_str = sign_str(mu_charge)
+  return "{}{}\\rightarrow\\mu^{{{}}}\\nu qq".format(
+          eM_chi, eP_chi, charge_str)
+
