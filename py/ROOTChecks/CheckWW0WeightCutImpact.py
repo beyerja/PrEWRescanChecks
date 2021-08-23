@@ -84,7 +84,7 @@ def main():
   """ Check how cutting away the events where the reweighting failed (and gave 0
       weights) affects the distributions.
   """
-  ROOT.EnableImplicitMT() # Enable multithreading in RDataFrame
+  ROOT.EnableImplicitMT(7) # Enable multithreading in RDataFrame
   ROOT.gROOT.SetBatch(True) # Don't show graphics at runtime
   PDF.set_default_mpl_format()
   
