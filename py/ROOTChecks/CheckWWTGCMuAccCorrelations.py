@@ -43,7 +43,7 @@ def add_TGC_derivative_plot(ax, TGC_name, xy_dict, n_bins, hist_range, dev_scale
   """ Add the plots showing the derivative of the cross section in each bin wrt.
       the TGC.
   """
-  grad = functools.partial(lin_coef, dev_scale=dev_scale)
+  grad = functools.partial(lin_coef, delta=dev_scale)
   
   x = xy_dict["no cut"]["SM"][0]
   d_P_nocut = grad(xy_dict["no cut"][TGC_name][1], xy_dict["no cut"]["SM"][1])
@@ -60,7 +60,7 @@ def add_TGC_diff_plot(ax, TGC_name, xy_dict, n_bins, hist_range, dev_scale):
   """ Add the plots showing the relative change from the SM for different cut 
       values.
   """
-  grad = functools.partial(lin_coef, dev_scale=dev_scale)
+  grad = functools.partial(lin_coef, delta=dev_scale)
 
   x = xy_dict["no cut"]["SM"][0]
   grad_P_nocut = grad(xy_dict["no cut"][TGC_name][1], xy_dict["no cut"]["SM"][1])
@@ -82,7 +82,7 @@ def add_cut_derivative_plot(ax, cut_name, xy_dict, n_bins, hist_range, dev_scale
   """ Add the plots showing the derivative of the cross section in each bin wrt.
       the muon acceptance parameter shift.
   """
-  grad = functools.partial(lin_coef, dev_scale=dev_scale)
+  grad = functools.partial(lin_coef, delta=dev_scale)
   
   x = xy_dict["no cut"]["SM"][0]
   d_P_SM = grad(xy_dict[cut_name]["SM"][1], xy_dict["cut"]["SM"][1])
@@ -99,7 +99,7 @@ def add_cut_diff_plot(ax, cut_name, xy_dict, n_bins, hist_range, dev_scale):
   """ Add the plots showing the relative change from the base cut for different 
       TGC values.
   """
-  grad = functools.partial(lin_coef, dev_scale=dev_scale)
+  grad = functools.partial(lin_coef, delta=dev_scale)
 
   x = xy_dict["no cut"]["SM"][0]
   grad_P_SM = grad(xy_dict[cut_name]["SM"][1], xy_dict["cut"]["SM"][1])
