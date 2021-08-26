@@ -41,3 +41,38 @@ def process_str(chirality, mu_charge):
   return "{}{}\\rightarrow\\mu^{{{}}}\\nu qq".format(
           eM_chi, eP_chi, charge_str)
 
+def fermion_str(fermion):
+  """ Return the latex string to a given fermion.
+  """
+  if fermion == "mu": 
+    return "\\mu"
+  else:
+    raise Exception("Unknown fermion {}".format(fermion))
+    
+def difermion_mass_str(label):
+  """ Latex Labelling of a difermion mass range.
+  """
+  if label == "return_to_Z":
+    return "m_{{Z}}"
+  elif label == "high_Q2":
+    return "250\\,GeV"
+  else:
+    raise Exception("Unknown mass label {}".format(label))
+
+def difermion_process_str(fermion, chirality, label, Z_direction=None):
+  """ Return the latex math string that describes the difermion produciton with
+      the given chirality in the given mass range, optional with Z flight 
+      direction.
+  """
+  f_str = fermion_str(fermion)
+  eM_chi, eP_chi = chirality_str(chirality)
+  m_str = difermion_mass_str(label)
+  
+  if Z_direction:
+    m_str = "({},{})".format(m_str, Z_direction)
+  else:
+    m_str = "({})".format(m_str)
+    
+  return "{}{}\\rightarrow{}{} {}".format(
+          eM_chi, eP_chi, f_str, f_str, m_str)
+

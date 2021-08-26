@@ -15,3 +15,14 @@ def get_costh_cut(cut_val, center_shift, width_shift, costh_branch):
   cut_str = "({} > {}) && ({} < {})".format(costh_branch, neg_cut, costh_branch,
                                             pos_cut)
   return cut_str
+  
+def get_ndim_costh_cut(cut_val, center_shift, width_shift, costh_branches):
+  """ Applying the same cos(theta) cut to multiple branches (/particles) at the
+      same time. 
+  """
+  cut_str = ""
+  for costh_branch in costh_branches:
+    if cut_str != "":
+      cut_str += " && "  
+    cut_str += get_costh_cut(cut_val, center_shift, width_shift, costh_branch)
+  return cut_str

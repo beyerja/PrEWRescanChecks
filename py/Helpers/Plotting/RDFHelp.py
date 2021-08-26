@@ -3,6 +3,8 @@
 
 import Plotting.Naming as PN
 
+import logging as log
+
 def select_mu(rdf, charge):
   """ Return an RDataFrame that only consideres events with muon of the given 
       charge.
@@ -14,3 +16,18 @@ def skip_0weight(rdf):
   """ Return an RDataFrame that ignores events with 0-weights
   """
   return rdf.Filter("rescan_weights.weight1 > 0.01")
+  
+def select_mumu(rdf, m_min, m_max, Z_direction=None):
+  """ Return an RDataFrame that only considers di-muon events in the given mass
+      frame.
+  """
+  cut_str = "(f_pdg == 13) && (m_ff > {}) && (m_ff < {})".format(m_min, m_max)
+  
+  if Z_direction == "FZ":
+    cut_str += " && (pz_ff > 0)"
+  elif Z_direction == "BZ":
+    cut_str += " && (pz_ff < 0)"
+  else:
+    log.debug("Not applying Z direction cut, got {}".format(Z_direction))
+  
+  return rdf.Filter(cut_str)
