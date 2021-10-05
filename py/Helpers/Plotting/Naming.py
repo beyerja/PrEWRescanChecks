@@ -5,13 +5,17 @@ def chirality_str(chirality):
   """ Translate chiralities from eL/pL style to latex style. 
   """
   eM_chi = None
-  if "eL" in chirality:
+  if chirality is None:
+    eM_chi = "e^{{-}}"
+  elif "eL" in chirality:
     eM_chi = "e_{{L}}^{{-}}"
   elif "eR" in chirality:
     eM_chi = "e_{{R}}^{{-}}"
     
   eP_chi = None
-  if "pL" in chirality:
+  if chirality is None:
+    eP_chi = "e^{{+}}"
+  elif "pL" in chirality:
     eP_chi = "e_{{L}}^{{+}}"
   elif "pR" in chirality:
     eP_chi = "e_{{R}}^{{+}}"
