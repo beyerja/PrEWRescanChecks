@@ -70,7 +70,7 @@ def add_dev_sig_plot(ax, x, xy_dict, n_bins, hist_range, MC_norm):
   
   
 def create_reweighting_plot(xy_dict, output_base, obs_name, obs_range, 
-                            lumi, MC_norm, dev_scale, 
+                            lumi, MC_norm, dev_scale, process_str, 
                             output_formats=["pdf","png"]):
   """ Create the reweighting plot for one observable.
   """
@@ -90,7 +90,7 @@ def create_reweighting_plot(xy_dict, output_base, obs_name, obs_range,
   add_dev_sig_plot(ax_down, x, xy_dict, n_bins, hist_range, MC_norm)  
   
   ax_down.set_ylabel(r"$\frac{\# weighted - \# SM}{\sqrt{\# weighted}}$", fontsize=30)
-  ax_down.legend(ncol=3, fontsize=16, title=r"$\delta={}$, $L={}$ab$^{{-1}}$".format(dev_scale, lumi/1000), title_fontsize=16)
+  ax_down.legend(ncol=3, fontsize=16, title="${}, \delta={}$, $L={}$ab$^{{-1}}$".format(process_str, dev_scale, lumi/1000), title_fontsize=16)
   ax_down.set_xlim(hist_range)
   ax_down.set_ylim(0, ax_down.get_ylim()[1])
   ax_down.set_xlabel(obs_name)
@@ -116,6 +116,7 @@ def check_reweighting(root_file, tgc_config_path, tgc_point_path, output_dir,
   chirality = IFH.find_chirality(root_file)
   output_base = "{}/ReweightCheck/mu{}/{}/".format(
                   output_dir, PN.sign_str(mu_charge,spelled=True), chirality)
+  process_str = PN.process_str(chirality, mu_charge)
   
   index_dict = {
     "g1z +": tcr.point_index([1,0,0]),
@@ -161,7 +162,7 @@ def check_reweighting(root_file, tgc_config_path, tgc_point_path, output_dir,
     for point, hist in hist_dict[obs_name].items():
       xy_dict[point] = PRHH.TH1_to_arrays(hist) 
     create_reweighting_plot(xy_dict, output_base, obs_name, obs_range, lumi, 
-                            MC_norm, dev_scale)
+                            MC_norm, dev_scale, process_str)
       
 def main():
   """ Create check plots that investigate how the weights in the given ROOT file
