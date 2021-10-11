@@ -82,3 +82,17 @@ def difermion_process_str(fermion, chirality, label, Z_direction=None):
   return "{}{}\\rightarrow{}{} {}".format(
           eM_chi, eP_chi, f_str, f_str, m_str)
 
+def observable_str(obs_name, process):
+  """ Return the LaTeX string for a given observable.
+  """
+  if process == "WW":
+    if obs_name == "costh_Wminus_star":
+      return "\\cos\\theta_{W^-}"
+    elif obs_name == "costh_l_star":
+      return "\\cos\\theta_l^*"
+    elif obs_name == "phi_l_star":
+      return "\\phi_l^*"
+    else:
+      raise Exception("Unknown WW observable {}".format(obs_name))
+  else:
+    raise Exception("Unknown process {}".format(process))

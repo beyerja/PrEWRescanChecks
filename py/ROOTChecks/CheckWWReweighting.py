@@ -93,7 +93,7 @@ def create_reweighting_plot(xy_dict, output_base, obs_name, obs_range,
   ax_down.legend(ncol=3, fontsize=16, title="${}, \delta={}$, $L={}$ab$^{{-1}}$".format(process_str, dev_scale, lumi/1000), title_fontsize=16)
   ax_down.set_xlim(hist_range)
   ax_down.set_ylim(0, ax_down.get_ylim()[1])
-  ax_down.set_xlabel(obs_name)
+  ax_down.set_xlabel("${}$".format(PN.observable_str(obs_name,"WW")))
 
   for format in output_formats:
     format_dir = "{}/{}".format(output_base,format)
