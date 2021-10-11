@@ -25,7 +25,9 @@ def chirality_str(chirality):
 def sign_str(num, spelled=False):
   """ Return the sign of the number as string, either just the sign or spelled.
   """
-  if spelled:
+  if num is None:
+    return ""
+  elif spelled:
     if num >= 0:
       return "plus"
     else:

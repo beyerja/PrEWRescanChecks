@@ -183,6 +183,8 @@ def main():
   LR_path = "/nfs/dust/ilc/group/ild/beyerjac/TGCAnalysis/SampleProduction/NewMCProduction/4f_WW_sl/4f_WW_sl_eL_pR.root"
   
   check_chiral_dep(LR_path, RL_path, tgc_config_path, tgc_point_path, 
+                   output_dir, None)
+  check_chiral_dep(LR_path, RL_path, tgc_config_path, tgc_point_path, 
                    output_dir, +1)
   check_chiral_dep(LR_path, RL_path, tgc_config_path, tgc_point_path, 
                    output_dir, -1)
