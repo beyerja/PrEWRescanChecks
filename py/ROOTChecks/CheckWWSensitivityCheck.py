@@ -94,14 +94,14 @@ def create_sig_plot(LR_chisqs, RL_chisqs, output_base, dev_scale, process_str,
   
   # Create the plots
   ax.errorbar(x_L, chisq_L_total, xerr=xerr, marker="1", ls=ls, label="$e^-_L e^+_R$, full", ms=ms+3, zorder=4)
-  ax.errorbar(x_L, chisq_L_shape, xerr=xerr, marker=m_L, ls=ls, label="$e^-_L e^+_R$, norm.", ms=ms, zorder=3)
-  ax.errorbar(x_L, chisq_L_norm, xerr=xerr, marker=m_L, ls=ls, label="$e^-_L e^+_R$, shape", ms=ms, zorder=2)
+  ax.errorbar(x_L, chisq_L_norm, xerr=xerr, marker=m_L, ls=ls, label="$e^-_L e^+_R$, norm.", ms=ms, zorder=3)
+  ax.errorbar(x_L, chisq_L_shape, xerr=xerr, marker=m_L, ls=ls, label="$e^-_L e^+_R$, shape", ms=ms, zorder=2)
   
   plt.gca().set_prop_cycle(None) # Reset the color cycle
   
   ax.errorbar(x_R, chisq_R_total, xerr=xerr, marker="2", ls=ls, label="$e^-_R e^+_L$, full", ms=ms+3, zorder=4)
-  ax.errorbar(x_R, chisq_R_shape, xerr=xerr, marker=m_R, ls=ls, label="$e^-_R e^+_L$, norm.", ms=ms, zorder=3)
-  ax.errorbar(x_R, chisq_R_norm, xerr=xerr, marker=m_R, ls=ls, label="$e^-_R e^+_L$, shape", ms=ms, zorder=2)
+  ax.errorbar(x_R, chisq_R_norm, xerr=xerr, marker=m_R, ls=ls, label="$e^-_R e^+_L$, norm.", ms=ms, zorder=3)
+  ax.errorbar(x_R, chisq_R_shape, xerr=xerr, marker=m_R, ls=ls, label="$e^-_R e^+_L$, shape", ms=ms, zorder=2)
   
   # Draw some axis grids
   draw_grid(ax,[1,3,5],"dotted")
