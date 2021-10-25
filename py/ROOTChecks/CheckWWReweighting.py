@@ -89,7 +89,7 @@ def create_reweighting_plot(xy_dict, output_base, obs_name, obs_range,
   # Lower plot: Significance of deviation (in case it would be measured)
   add_dev_sig_plot(ax_down, x, xy_dict, n_bins, hist_range, MC_norm)  
   
-  ax_down.set_ylabel(r"$\frac{\# weighted - \# SM}{\sqrt{\# weighted}}$", fontsize=30)
+  ax_down.set_ylabel(r"$\frac{|\# weighted - \# SM|}{\sqrt{\# weighted}}$", fontsize=30)
   ax_down.legend(ncol=3, fontsize=16, title="${}, \delta={}$, $L={}$ab$^{{-1}}$".format(process_str, dev_scale, lumi/1000), title_fontsize=16)
   ax_down.set_xlim(hist_range)
   ax_down.set_ylim(0, ax_down.get_ylim()[1])
