@@ -7,7 +7,9 @@ import sys
 sys.path.append("../Helpers") 
 import IO.SysHelpers as ISH
 import IO.TGCConfigReader as ITCR
+import NumPyHelp.Histograms as NHPH
 import Plotting.DefaultFormat as PDF
+import Plotting.MPLHelp as PMH
 import Plotting.Naming as PN
 import Plotting.RDFHelp as PRH
 import Plotting.ROOTHistHelp as PRHH
@@ -41,6 +43,21 @@ def shape_chisq(chisq_total, chisq_norm):
   """
   return chisq_total - chisq_norm
   
+def third_coord_chisq(x, coord_index, SM_array, dev_array, MC_norm):
+  """ Calculate indirectly the importance of one coordinate for the chi-squared:
+      - Calculate the total chi-sqaured from the 3D distribution
+      - Calculate the chi-squared from the 2D distribution that integrates over
+        the relevant coordinate
+      => The "chi-squared" of the coordinate is the difference between the two.
+  """
+  # Project away the relevant coordinate
+  _, SM_proj  = NHPH.proj_2from3D(x, SM_array, coord_index)
+  _, dev_proj = NHPH.proj_2from3D(x, dev_array, coord_index)
+  
+  chisq_total = total_chisq(SM_array, dev_array, MC_norm) 
+  chisq_proj  = total_chisq(SM_proj, dev_proj, MC_norm) 
+  return chisq_total - chisq_proj
+  
 def draw_grid(ax,x,ls,color="black",alpha=1.0,lw=0.5):
   """ Helper function to simple axis grid lines at the given points
   """
@@ -56,6 +73,26 @@ def draw_grid(ax,x,ls,color="black",alpha=1.0,lw=0.5):
   ax.set_xlim(xlims)
   ax.set_ylim(ylims)
   
+def draw_x_labelling(ax, dy):
+  """ Draw the x axis labelling.
+  """
+  ax.set_xticklabels([])
+
+  dev_labels = [ "$\Delta g_1^{Z}$", "$\Delta \kappa_{\gamma}$", "$\Delta \lambda_{\gamma}$"]
+  for i_TGC in range(3):
+    ax.text(i_TGC*2+1, -3*dy, dev_labels[i_TGC], ha='center', va='bottom')
+    
+  for xi_M in np.arange(0, 6, step=2)+0.5:
+    ax.text(xi_M, -2*dy, "$-\delta$", ha='center', va='bottom')
+  for xi_P in np.arange(1, 6, step=2)+0.5:
+    ax.text(xi_P, -2*dy, "$+\delta$", ha='center', va='bottom')
+  
+  for xi_L in np.arange(6)+0.25:
+    ax.text(xi_L, -dy, "LR", ha='center', va='bottom')
+  for xi_R in np.arange(6)+0.75:
+    ax.text(xi_R, -dy, "RL", ha='center', va='bottom')
+  
+  
 def create_sig_plot(LR_chisqs, RL_chisqs, output_base, dev_scale, process_str, 
                     lumi, output_formats=["pdf","png"]):
   """ Create a plot that showcases where the TGC sensitivities come from.
@@ -69,12 +106,6 @@ def create_sig_plot(LR_chisqs, RL_chisqs, output_base, dev_scale, process_str,
   ax.set_xlim(0, x_R[-1]+0.25)
   ax.set_xticks(x, minor=True)
   order = ["g1z -", "g1z +", "ka -", "ka +", "la -", "la +"]
-  x_ticks = [ "$\Delta g_1^{Z} = -\delta$", "$\Delta g_1^{Z} = +\delta$", 
-              "$\Delta \kappa_{\gamma} = -\delta$", "$\Delta \kappa_{\gamma} = +\delta$", 
-              "$\Delta \lambda_{\gamma} = -\delta$", "$\Delta \lambda_{\gamma} = +\delta$" ]
-  plt.xticks(x, x_ticks, size='large')
-  plt.setp(ax.get_xticklabels(), rotation=45, ha="right",
-         rotation_mode="anchor")
          
   # Collect the y points
   chisq_L_total = np.array([LR_chisqs[point]["total"] for point in order])
@@ -90,27 +121,30 @@ def create_sig_plot(LR_chisqs, RL_chisqs, output_base, dev_scale, process_str,
   ls = 'none' # Line style -> No connecting line
   m_L = "v" # eLpR marker
   m_R = "^" # eRpL marker
-  xerr = 0.25 # x errorbar length 
+  width = 0.3 # x errorbar length 
   
   # Create the plots
-  ax.errorbar(x_L, chisq_L_total, xerr=xerr, marker="1", ls=ls, label="$e^-_L e^+_R$, full", ms=ms+3, zorder=4)
-  ax.errorbar(x_L, chisq_L_norm, xerr=xerr, marker=m_L, ls=ls, label="$e^-_L e^+_R$, norm.", ms=ms, zorder=3)
-  ax.errorbar(x_L, chisq_L_shape, xerr=xerr, marker=m_L, ls=ls, label="$e^-_L e^+_R$, shape", ms=ms, zorder=2)
+  ax.bar(x_L, chisq_L_shape, width=width, label="shape")
+  ax.bar(x_L, chisq_L_norm, width=width, bottom=chisq_L_shape, label="normalisation")
   
   plt.gca().set_prop_cycle(None) # Reset the color cycle
   
-  ax.errorbar(x_R, chisq_R_total, xerr=xerr, marker="2", ls=ls, label="$e^-_R e^+_L$, full", ms=ms+3, zorder=4)
-  ax.errorbar(x_R, chisq_R_norm, xerr=xerr, marker=m_R, ls=ls, label="$e^-_R e^+_L$, norm.", ms=ms, zorder=3)
-  ax.errorbar(x_R, chisq_R_shape, xerr=xerr, marker=m_R, ls=ls, label="$e^-_R e^+_L$, shape", ms=ms, zorder=2)
+  ax.bar(x_R, chisq_R_shape, width=width)
+  ax.bar(x_R, chisq_R_norm, width=width, bottom=chisq_R_shape)
   
   # Draw some axis grids
   draw_grid(ax,[1,3,5],"dotted")
   draw_grid(ax,[2,4],"solid")
   
-  ax.set_ylim(0, ax.get_ylim()[1])
+  ymax = ax.get_ylim()[1]
+  ax.set_ylim(0, ymax)
   ax.set_ylabel("$\\chi^2$", fontsize=30)
   
-  ax.legend(ncol=2, fontsize=20, loc=0, title="${}$, $L={}\,$ab$^{{-1}}$, $\delta={}$".format(process_str,np.round(lumi/1000,1),dev_scale), title_fontsize=20)
+  dy = ymax/15.
+  draw_x_labelling(ax, dy)
+  
+  ax.legend(ncol=2, fontsize=20, title="${}$, $L={}\,$ab$^{{-1}}$, $\delta={}$".format(process_str,np.round(lumi/1000,1),dev_scale), 
+            title_fontsize=20, bbox_to_anchor=(0.0, 1.03), loc='lower left')
   
   for format in output_formats:
     format_dir = "{}/{}".format(output_base,format)
@@ -119,7 +153,80 @@ def create_sig_plot(LR_chisqs, RL_chisqs, output_base, dev_scale, process_str,
   
   plt.close(fig)
 
+def create_shape_contr_plot(LR_chisqs, RL_chisqs, output_base, process_str, 
+                            output_formats=["pdf","png"]):
+  """ Create a plot that shows the estimated relative contribution of each 
+      coordinate to the shape deviation significance. 
+  """
+  fig = plt.figure(tight_layout=True, figsize=(10,8.5))
+  ax = plt.gca()
   
+  x = np.arange(6)+0.5
+  x_L = x-0.25 
+  x_R = x+0.25
+  ax.set_xlim(0, x_R[-1]+0.25)
+  ax.set_xticks(x, minor=True)
+  order = ["g1z -", "g1z +", "ka -", "ka +", "la -", "la +"]
+         
+  # Collect the y points
+  chisq_L_c1 = np.array([LR_chisqs[point]["costh_Wminus_star"] for point in order])
+  chisq_L_c2 = np.array([LR_chisqs[point]["costh_l_star"] for point in order])
+  chisq_L_c3 = np.array([LR_chisqs[point]["phi_l_star"] for point in order])
+  chisq_L_norm = chisq_L_c1 + chisq_L_c2 + chisq_L_c3
+  for chisq_L_arr in [chisq_L_c1, chisq_L_c2, chisq_L_c3]:
+    chisq_L_arr *= 100./chisq_L_norm
+  
+  chisq_R_c1 = np.array([RL_chisqs[point]["costh_Wminus_star"] for point in order])
+  chisq_R_c2 = np.array([RL_chisqs[point]["costh_l_star"] for point in order])
+  chisq_R_c3 = np.array([RL_chisqs[point]["phi_l_star"] for point in order])
+  chisq_R_norm = chisq_R_c1 + chisq_R_c2 + chisq_R_c3
+  for chisq_R_arr in [chisq_R_c1, chisq_R_c2, chisq_R_c3]:
+    chisq_R_arr *= 100./chisq_R_norm
+    
+  # Labelling of the three coordinates
+  c1_label = "${}$".format(PN.observable_str("costh_Wminus_star", "WW"))
+  c2_label = "${}$".format(PN.observable_str("costh_l_star", "WW"))
+  c3_label = "${}$".format(PN.observable_str("phi_l_star", "WW"))
+
+  # Common style elements
+  ms = 9.0 # Marker size
+  ls = 'none' # Line style -> No connecting line
+  m_L = "v" # eLpR marker
+  m_R = "^" # eRpL marker
+  width = 0.25 # x errorbar length 
+  
+  # Create the plots
+  PMH.skip_n_colors(ax, 2)
+  ax.bar(x_L, chisq_L_c1, width=width, label=c1_label)
+  ax.bar(x_L, chisq_L_c2, width=width, bottom=chisq_L_c1, label=c2_label)
+  ax.bar(x_L, chisq_L_c3, width=width, bottom=chisq_L_c1+chisq_L_c2, label=c3_label)
+  
+  plt.gca().set_prop_cycle(None) # Reset the color cycle
+  
+  PMH.skip_n_colors(ax, 2)
+  ax.bar(x_R, chisq_R_c1, width=width)
+  ax.bar(x_R, chisq_R_c2, width=width, bottom=chisq_R_c1)
+  ax.bar(x_R, chisq_R_c3, width=width, bottom=chisq_R_c1+chisq_R_c2)
+  
+  dy = ax.get_ylim()[1]/15.
+  draw_x_labelling(ax, dy)
+  
+  # Draw some axis grids
+  draw_grid(ax,[1,3,5],"dotted")
+  draw_grid(ax,[2,4],"solid")
+  
+  ax.set_ylim(0, 100)
+  ax.set_ylabel("$\\frac{\chi^2_{w/\,\, coord.} - \chi^2_{w/o\,\, coord.}}{norm.}$ [%]", fontsize=30)
+  
+  ax.legend(ncol=3, fontsize=20, title_fontsize=20, bbox_to_anchor=(0.0, 1.03), 
+            loc='lower left', title="Rel. importance of coord. in 3D distr., ${}$".format(process_str))
+  
+  for format in output_formats:
+    format_dir = "{}/{}".format(output_base,format)
+    ISH.create_dir(format_dir)
+    fig.savefig("{}/WWTGCShapeContributions.{}".format(format_dir, format))
+  
+  plt.close(fig)
 
 def get_chisqs(root_file, tgc_config_path, tgc_point_path,
                observables, mu_charge, lumi, tree_name = "WWObservables"):
@@ -177,7 +284,7 @@ def get_chisqs(root_file, tgc_config_path, tgc_point_path,
   chisq_dict = {}
     
   # Calculate the chi-squared's
-  y_SM = PRHH.TH3_to_arrays(hist_SM)[1]
+  x, y_SM = PRHH.TH3_to_arrays(hist_SM)
   for point, hist in hist_dict.items():
     y_dev = PRHH.TH3_to_arrays(hist)[1]
   
@@ -186,6 +293,10 @@ def get_chisqs(root_file, tgc_config_path, tgc_point_path,
     chisq_shape = shape_chisq(chisq_total, chisq_norm)
     chisq_dict[point] = {
       "total": chisq_total, "norm": chisq_norm, "shape": chisq_shape }
+      
+    for i_c in range(len(obs_names)):
+      chisq_dict[point][obs_names[i_c]] = third_coord_chisq(x, i_c, y_SM, y_dev, 
+                                                            MC_norm)
     
   return chisq_dict
   
@@ -208,6 +319,7 @@ def check_sensitivities(LR_file, RL_file, tgc_config_path, tgc_point_path,
   
   # Trigger the plotting
   create_sig_plot(chisqs_LR, chisqs_RL, output_base, dev_scale, process_str, lumi)
+  create_shape_contr_plot(chisqs_LR, chisqs_RL, output_base, process_str)
       
 def main():
   """ Check where the sensitivity to the different TGCs comes from:
