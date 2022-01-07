@@ -15,6 +15,32 @@ def TH1_to_arrays(th1):
     y.append(th1.GetBinContent(int(bin)))
   return np.array(x), np.array(y)
   
+def TH2_to_arrays(th2):
+  """ Transform a ROOT TH2 into numpy x and y arrays.
+  """
+  # Find bin centers and values, skip overflow/underflow bins
+  x=[]
+  y=[]
+  for x_bin in range(0, th2.GetNbinsX()+2):
+    for y_bin in range(0, th2.GetNbinsY()+2):
+      bin = th2.GetBin(x_bin, y_bin)
+
+      # Skip overflow and underflow bins
+      if th2.IsBinUnderflow(bin) or th2.IsBinOverflow(bin): 
+        continue
+
+      # Collect bin information and fill into arrays
+      _x = [th2.GetXaxis().GetBinCenter(x_bin),
+            th2.GetYaxis().GetBinCenter(y_bin)]
+      if not x:
+        x = [_x] # Make sure to get correct array structure
+      else:
+        x.append(_x)  
+
+      y.append(th2.GetBinContent(bin))
+
+  return np.array(x), np.array(y)
+  
 def TH3_to_arrays(th3):
   """ Transform a ROOT TH3 into numpy x and y arrays.
   """

@@ -75,11 +75,18 @@ def difermion_process_str(fermion, chirality, label, Z_direction=None):
   m_str = difermion_mass_str(label)
   
   if Z_direction:
-    m_str = "({},{})".format(m_str, Z_direction)
+    Z_dir_str = None
+    if "BZ" in Z_direction:
+      Z_dir_str = "p_z^{{\\mu\\mu}}<0"
+    elif "FZ" in Z_direction:
+      Z_dir_str = "p_z^{{\\mu\\mu}}>0"
+    else:
+      raise Exception("Unknown Z dir ", Z_direction)
+    m_str = "({},{})".format(m_str, Z_dir_str)
   else:
     m_str = "({})".format(m_str)
     
-  return "{}{}\\rightarrow{}{} {}".format(
+  return "{}{}\\rightarrow{}{}\\, {}".format(
           eM_chi, eP_chi, f_str, f_str, m_str)
 
 def observable_str(obs_name, process):
