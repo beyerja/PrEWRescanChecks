@@ -27,10 +27,10 @@ cut_name_map = {
   'w_shift': r"\Delta w"
 }
 
-def ratio(a,b):
+def ratio(a,b,default=1.0):
   """ Calculate ratio between two arrays, if denominator point is 0 set ratio=1.
   """
-  return np.where(np.abs(b)>0.01,a/b,1.0)
+  return np.where(np.abs(b)>1e-9,a/b,default)
 
 def lin_coef(y_delta, y_zero, delta):
   """ Calculate the normalised gradient:
@@ -178,6 +178,60 @@ def create_reweighting_plots(xy_dict, output_base, obs_name, obs_range,
                                                     cut_name, format))
 
     plt.close(fig)
+  
+def create_relative_relevance_plots(xy_dict, output_base, dev_scale, cut_dev, 
+                                    process_str, output_formats=["pdf","png"]):
+  """ Create plots that check the change in the gradiant in a bin when the 
+      respective other effect varies, on the 3D distribution.
+  """
+  for TGC_name in ["g1z", "ka", "la"]:
+    grad = functools.partial(lin_coef, delta=dev_scale)
+    fig = plt.figure(tight_layout=True, figsize=(7,6))
+    ax = plt.gca()
+
+    grad_cut = grad(xy_dict["cut"][TGC_name][1], xy_dict["cut"]["SM"][1])
+    print(TGC_name)
+    print(grad_cut)
+    for cut_name in ["c_shift", "w_shift"]:
+      label="${} $=$ \delta_{{cut}}$".format(cut_name_map[cut_name])
+      grad_cut_dev = grad(xy_dict[cut_name][TGC_name][1], xy_dict[cut_name]["SM"][1])
+      ax.scatter(grad_cut, grad_cut_dev-grad_cut, label=label)
+      
+    ax.set_xlabel(r"$y=\frac{{1}}{{\sigma^{{bin}}}}\frac{{d\sigma^{{bin}}}}{{d {}}}$".format(TGC_name_map[TGC_name]), fontsize=30)
+    ax.set_ylabel(r"$y\left(\Delta c, \Delta w\right)-y\left(0,0\right)$")
+    ax.legend(fontsize=16, title="${}$\n$\delta_{{cut}}={}$".format(process_str, cut_dev), title_fontsize=16)
+    
+    for format in output_formats:
+      format_dir = "{}/{}".format(output_base,format)
+      ISH.create_dir(format_dir)
+      fig.savefig("{}/RelRelevanceTGCMuAccCorr_{}.{}".format(format_dir, 
+                                                    TGC_name, format))
+
+    plt.close(fig)
+    
+  for cut_name in ["c_shift", "w_shift"]:
+    grad = functools.partial(lin_coef, delta=cut_dev)
+    fig = plt.figure(tight_layout=True, figsize=(7,6))
+    ax = plt.gca()
+
+    grad_SM = grad(xy_dict[cut_name]["SM"][1], xy_dict["cut"]["SM"][1])
+    for TGC_name in ["g1z", "ka", "la"]:
+      cut_par = cut_name[0]
+      label="$\Delta {} $=$ \delta_{{TGC}}$".format(TGC_name_map[TGC_name])
+      grad_TGC = grad(xy_dict[cut_name][TGC_name][1], xy_dict["cut"][TGC_name][1])
+      ax.scatter(grad_SM, grad_TGC-grad_SM, label=label)
+    
+    ax.set_xlabel(r"$y=\frac{{1}}{{\sigma^{{bin}}}}\frac{{d\sigma^{{bin}}}}{{d {}}}$".format(cut_name_map[cut_name]), fontsize=30)
+    ax.set_ylabel(r"$y\left(\Delta TGCs\right)-y\left(0\right)$")
+    ax.legend(fontsize=16, title="${}$\n$\delta_{{TGC}}={}$".format(process_str, cut_dev), title_fontsize=16)
+    
+    for format in output_formats:
+      format_dir = "{}/{}".format(output_base,format)
+      ISH.create_dir(format_dir)
+      fig.savefig("{}/RelRelevanceTGCMuAccCorr_{}.{}".format(format_dir, 
+                                                    cut_name, format))
+
+    plt.close(fig)
 
 def check_reweighting(root_file, tgc_config_path, tgc_point_path, output_dir,
                       observables, mu_charge, tree_name = "WWObservables"):
@@ -214,8 +268,9 @@ def check_reweighting(root_file, tgc_config_path, tgc_point_path, output_dir,
   }
   dev_scale = tcr.scale
   
-  # Dict that stores histograms for each observables and each dev point
+  # Dicts that stores histograms (1D and 3D)
   hist_dict = {}
+  hist3d_dict = {}
   
   # Book all the histograms as lazy actions of the RDataFrame
   for obs_name, obs_range in observables.items():
@@ -237,8 +292,26 @@ def check_reweighting(root_file, tgc_config_path, tgc_point_path, output_dir,
         weight_name = "rescan_weights.weight"+i_str
         hist_dict[obs_name][cut_name][point] = cut_rdf.Histo1D(h_def, obs_name, 
                                                                weight_name)
+  
+  obs_names = ("costh_Wminus_star", "costh_l_star", "phi_l_star")
+  hrange_3D = ( *observables["costh_Wminus_star"], *observables["costh_l_star"], 
+                *observables["phi_l_star"] )
+  for cut_name, cut_rdf in mu_acc_rdf_dict.items():
+    hist3d_dict[cut_name] = {}
     
-  # Make the plots for each observable
+    # Standard model histograms for comparison
+    h_SM_def = ("SM", "SM", *hrange_3D)
+    hist3d_dict[cut_name]["SM"] = cut_rdf.Histo3D(h_SM_def, *obs_names)
+    
+    # Histograms with TGC deviation
+    for point, index in index_dict.items():
+      i_str = str(index+1) # weight naming starts with index 1
+      h_def = ("w"+i_str, "w"+i_str, *hrange_3D)
+      weight_name = "rescan_weights.weight"+i_str
+      hist3d_dict[cut_name][point] = cut_rdf.Histo3D(h_def, *obs_names, 
+                                                     weight_name)
+    
+  # Make the 1D plots for each observable
   for obs_name, obs_range in observables.items():
     # First transform hists to arrays for easier matplotlib plotting
     xy_dict = {}
@@ -248,6 +321,14 @@ def check_reweighting(root_file, tgc_config_path, tgc_point_path, output_dir,
         xy_dict[cut_name][point] = PRHH.TH1_to_arrays(hist) 
     create_reweighting_plots(xy_dict, output_base, obs_name, obs_range, 
                              dev_scale, cut_dev, process_str)
+  # Make the 3D plots
+  xy_dict_3D = {}
+  for cut_name, cut_dict in hist3d_dict.items():
+    xy_dict_3D[cut_name] = {}
+    for point, hist in cut_dict.items():
+      xy_dict_3D[cut_name][point] = PRHH.TH3_to_arrays(hist) 
+  create_relative_relevance_plots(xy_dict_3D, output_base, dev_scale, cut_dev, 
+                                  process_str)
       
 def main():
   """ Create check plots that investigate how the weights in the given ROOT file
@@ -263,9 +344,9 @@ def main():
   
   output_dir = "../../output"
   
-  observables = { "costh_Wminus_star" : (30, -1., 1.),
-                  "costh_l_star" :      (30, -1., 1.),
-                  "phi_l_star":         (30, -np.pi, np.pi) }
+  observables = { "costh_Wminus_star" : (20, -1., 1.),
+                  "costh_l_star" :      (10, -1., 1.),
+                  "phi_l_star":         (10, -np.pi, np.pi) }
   
   RL_path = "/nfs/dust/ilc/group/ild/beyerjac/TGCAnalysis/SampleProduction/NewMCProduction/4f_WW_sl/4f_WW_sl_eR_pL.root"
   LR_path = "/nfs/dust/ilc/group/ild/beyerjac/TGCAnalysis/SampleProduction/NewMCProduction/4f_WW_sl/4f_WW_sl_eL_pR.root"
