@@ -28,11 +28,11 @@ def check_labmu_distr(root_file, output_dir, mu_charge,
   h_def = (obs_name, obs_name, nbins, xmin, xmax)
   rhist = mu_rdf.Histo1D(h_def, obs_name)
   
-  # Get the SM cross section, needed for correct uncertainty weighting
-  SM_xsection = mu_rdf.Mean("cross_section")
+  # Get the SM cross section
+  SM_xsection = rdf.Mean("cross_section")
       
   # Calculate the normalisation of the MC events
-  n_MC = rdf.Count() # Use the original rdf with all MC events (except 0-weight)
+  n_MC = rdf.Count()
   MC_norm = SM_xsection.GetValue() / n_MC.GetValue()
   
   x,y = PRHH.TH1_to_arrays(rhist) 
