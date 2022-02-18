@@ -14,7 +14,7 @@ import Plotting.ROOTHistHelp as PRHH
 
 def check_sprime_distr(root_file, output_dir, tree_name="DifermionObservables", 
                        output_formats=["pdf","png"]):
-  rdf = ROOT.RDataFrame(tree_name, root_file).Range(300000)
+  rdf = ROOT.RDataFrame(tree_name, root_file)
   mu_rdf = PRH.select_mumu(rdf)
   
   chirality = IFH.find_chirality(root_file)
