@@ -20,11 +20,16 @@ def skip_0weight(rdf):
   """
   return rdf.Filter("rescan_weights.weight1 > 0.01")
   
-def select_mumu(rdf, m_min, m_max, Z_direction=None):
+def select_mumu(rdf, m_min=None, m_max=None, Z_direction=None):
   """ Return an RDataFrame that only considers di-muon events in the given mass
       frame.
   """
-  cut_str = "(f_pdg == 13) && (m_ff > {}) && (m_ff < {})".format(m_min, m_max)
+  cut_str = "(f_pdg == 13)"
+  
+  if not (m_min is None) and not (m_max is None):
+    cut_str += " && (m_ff > {}) && (m_ff < {})".format(m_min, m_max)
+  else:
+    log.debug("Not applying m_ff cut, need non-None cut values.")
   
   if Z_direction == "FZ":
     cut_str += " && (pz_ff > 0)"

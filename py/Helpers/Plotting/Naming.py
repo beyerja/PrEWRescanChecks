@@ -65,14 +65,14 @@ def difermion_mass_str(label):
   else:
     raise Exception("Unknown mass label {}".format(label))
 
-def difermion_process_str(fermion, chirality, label, Z_direction=None):
+def difermion_process_str(fermion, chirality, label=None, Z_direction=None):
   """ Return the latex math string that describes the difermion produciton with
       the given chirality in the given mass range, optional with Z flight 
       direction.
   """
   f_str = fermion_str(fermion)
   eM_chi, eP_chi = chirality_str(chirality)
-  m_str = difermion_mass_str(label)
+  m_str = difermion_mass_str(label) if not (label is None) else None
   
   if Z_direction:
     Z_dir_str = None
@@ -82,11 +82,16 @@ def difermion_process_str(fermion, chirality, label, Z_direction=None):
       Z_dir_str = "p_z^{{\\mu\\mu}}>0"
     else:
       raise Exception("Unknown Z dir ", Z_direction)
-    m_str = "({},{})".format(m_str, Z_dir_str)
-  else:
+    if not (m_str is None):
+      m_str = "({},{})".format(m_str, Z_dir_str)
+    else:
+      m_str = "({})".format(Z_dir_str)
+  elif not (m_str is None):
     m_str = "({})".format(m_str)
     
-  return "{}{}\\rightarrow{}{}\\, {}".format(
+  m_str = "\\, {}".format(m_str) if not (m_str is None) else ""
+    
+  return "{}{}\\rightarrow{}{}{}".format(
           eM_chi, eP_chi, f_str, f_str, m_str)
 
 def observable_str(obs_name, process):
