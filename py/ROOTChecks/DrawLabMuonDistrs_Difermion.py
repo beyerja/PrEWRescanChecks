@@ -22,14 +22,18 @@ def create_plot(x, y, h_range, m_label, Z_dir, chirality,
   process_str = PN.difermion_process_str("mu", chirality, m_label, Z_dir)
   ax.set_title("${}$".format(process_str))
   
+  z_max = 55 if m_label == "return_to_Z" else 320
+
   hist = ax.hist2d(
     x=x[:,0], y=x[:,1], weights=y,
     bins=(h_range[0],h_range[3]), 
-    range=[[h_range[1], h_range[2]],[h_range[4], h_range[5]]] )
+    range=[[h_range[1], h_range[2]],[h_range[4], h_range[5]]],
+    vmin=0, vmax=z_max )
   
-  fig.colorbar(hist[3], ax=ax, label="$d\\sigma [$fb$^{{-1}}]$")
+  fig.colorbar(hist[3], ax=ax, label="$d\\sigma [$fb$]$")
   ax.set_xlabel("$\\cos \\theta_{\\mu^-}$")
   ax.set_ylabel("$\\cos \\theta_{\\mu^+}$")
+  
   
   for format in output_formats:
     format_dir = "{}/{}".format(output_base,format)
