@@ -34,8 +34,8 @@ def chisq_cor(y_SM_cut, y_SM_shift, y_TGC_cut, y_TGC_shift, MC_norm):
       MC_norm : normalisation of the Monte Carlo events (needs to include lumi)
   """
   return MC_norm * np.sum( 
-    ( ratio( ratio(y_SM_shift * y_TGC_cut, y_SM_cut)  - y_TGC_shift,
-             np.sqrt(y_SM_cut)) )**2 )
+    ( ratio( (ratio(y_TGC_cut, y_SM_cut) * y_SM_shift  - y_TGC_shift)**2,
+             y_SM_cut) ) )
 
 def add_cor_sig_plot(ax, y_dict, MC_norm):
   """ Add a scatter plot comparing the chi-squared that results from treating
@@ -69,7 +69,7 @@ def add_cor_sig_plot(ax, y_dict, MC_norm):
   label = "Combined TGC &\n $\mu$ acc. shifts"
   scatter = ax.scatter(chisq_delta_arr, chisq_cor_arr, label=label)
   
-def create_cor_sig_plot(y_dict, output_base, dev_scale, c_cut_dev, w_cut_dev, 
+def create_cor_sig_plot(y_dict, output_base, dev_scale, cut_dev, 
                         MC_norm, process_str, output_formats=["pdf","png"]):
   """ Create the correlation significance plot for one observable.
   """
@@ -77,13 +77,14 @@ def create_cor_sig_plot(y_dict, output_base, dev_scale, c_cut_dev, w_cut_dev,
   
   add_cor_sig_plot(ax, y_dict, MC_norm)
   
-  ax.set_xlabel(r"$\chi_{combined\,shift}^{2}$")
-  ax.set_ylabel(r"$\chi_{factorization\,error}^{2}$")
+  ax.set_xlabel(r"$\chi_{shift}^{2}$", fontsize=26)
+  ax.set_ylabel(r"$\chi_{fact.\,error}^{2}$", fontsize=26)
   
-  ax.set_xscale('log')
+  # ax.set_xscale('log')
+  ax.set_xlim(0, ax.get_xlim()[1])
   ax.set_ylim(0, ax.get_ylim()[1])
   
-  legend_title = "${}$\n$\delta_{{TGC}} = {},$\n$\delta_{{c}}^{{\mu-acc.}} = {},$\n$\delta_{{w}}^{{\mu-acc.}} = {}$".format(process_str, dev_scale, c_cut_dev, w_cut_dev)
+  legend_title = "${}$\n$\delta_{{TGC}} = {},$\n$\delta_{{\mu\,acc.}} = {}$".format(process_str, dev_scale, cut_dev)
   ax.legend(title=legend_title, loc='upper left')
 
   for format in output_formats:
@@ -102,18 +103,17 @@ def check_cor_sig(root_file, tgc_config_path, tgc_point_path, output_dir,
   mu_rdf = PRH.select_mu(rdf, mu_charge)
   
   # Muon Acceptance related setup
-  cut_val = 0.9925 # 7deg
-  c_cut_dev = 5.0e-4 
-  w_cut_dev = 1.0e-4
+  cut_val = 0.85 # 7deg
+  cut_dev = 5.0e-4 / 2.0 # divide by factor 2 because TGC deviation also factor 2 smaller than expected unc.
   costh_branch="costh_l"
   
   mu_acc_rdf_dict = {
     "no cut": mu_rdf,
     "cut": mu_rdf.Filter(SMA.get_costh_cut(cut_val, 0, 0, costh_branch)),
-    "c shift +": mu_rdf.Filter(SMA.get_costh_cut(cut_val, +c_cut_dev, 0, costh_branch)),
-    "c shift -": mu_rdf.Filter(SMA.get_costh_cut(cut_val, -c_cut_dev, 0, costh_branch)),
-    "w shift +": mu_rdf.Filter(SMA.get_costh_cut(cut_val, 0, +w_cut_dev, costh_branch)),
-    "w shift -": mu_rdf.Filter(SMA.get_costh_cut(cut_val, 0, -w_cut_dev, costh_branch)),
+    "c shift +": mu_rdf.Filter(SMA.get_costh_cut(cut_val, +cut_dev, 0, costh_branch)),
+    "c shift -": mu_rdf.Filter(SMA.get_costh_cut(cut_val, -cut_dev, 0, costh_branch)),
+    "w shift +": mu_rdf.Filter(SMA.get_costh_cut(cut_val, 0, +cut_dev, costh_branch)),
+    "w shift -": mu_rdf.Filter(SMA.get_costh_cut(cut_val, 0, -cut_dev, costh_branch)),
   }
   
   # TGC related setup
@@ -183,7 +183,8 @@ def check_cor_sig(root_file, tgc_config_path, tgc_point_path, output_dir,
     for point, hist in cut_dict.items():
       y_dict[cut_name][point] = PRHH.TH3_to_arrays(hist)[1]
   
-  create_cor_sig_plot(y_dict, output_base, dev_scale, c_cut_dev, w_cut_dev, 
+  print(MC_norm)
+  create_cor_sig_plot(y_dict, output_base, dev_scale, cut_dev, 
                       MC_norm, process_str)
       
 def main():
