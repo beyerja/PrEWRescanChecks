@@ -133,7 +133,7 @@ def create_reweighting_plots(xy_dict, output_base, obs_name, obs_range,
     # Upper plot
     add_TGC_derivative_plot(ax_up, TGC_name, xy_dict, n_bins, hist_range, dev_scale)
     
-    ax_up.set_ylabel(r"$y=\frac{{1}}{{\sigma^{{bin}}}}\frac{{d\sigma^{{bin}}}}{{d {}}}$".format(TGC_name_map[TGC_name]), fontsize=30)
+    ax_up.set_ylabel(r"$A_{{lin}}=\frac{{1}}{{\sigma^{{bin}}}}\frac{{d\sigma^{{bin}}}}{{d {}}}$".format(TGC_name_map[TGC_name]), fontsize=30)
     ax_up.set_xlim(hist_range)
 
     ax_up.legend(fontsize=16, title="${}$, $\delta_{{cut}}={}$".format(process_str, cut_dev), title_fontsize=16)
@@ -161,7 +161,7 @@ def create_reweighting_plots(xy_dict, output_base, obs_name, obs_range,
     # Upper plot
     add_cut_derivative_plot(ax_up, cut_name, xy_dict, n_bins, hist_range, dev_scale)
     
-    ax_up.set_ylabel(r"$y=\frac{{1}}{{\sigma^{{bin}}}}\frac{{d\sigma^{{bin}}}}{{d {}}}$".format(cut_name_map[cut_name]), fontsize=30)
+    ax_up.set_ylabel(r"$A_{{lin}}=\frac{{1}}{{\sigma^{{bin}}}}\frac{{d\sigma^{{bin}}}}{{d {}}}$".format(cut_name_map[cut_name]), fontsize=30)
     ax_up.set_xlim(hist_range)
 
     ax_up.legend(fontsize=16, title="${}$, $\delta_{{TGC}}={}$".format(process_str, dev_scale), title_fontsize=16)
@@ -190,15 +190,13 @@ def create_relative_relevance_plots(xy_dict, output_base, dev_scale, cut_dev,
     ax = plt.gca()
 
     grad_cut = grad(xy_dict["cut"][TGC_name][1], xy_dict["cut"]["SM"][1])
-    print(TGC_name)
-    print(grad_cut)
     for cut_name in ["c_shift", "w_shift"]:
       label="${} $=$ \delta_{{cut}}$".format(cut_name_map[cut_name])
       grad_cut_dev = grad(xy_dict[cut_name][TGC_name][1], xy_dict[cut_name]["SM"][1])
       ax.scatter(grad_cut, grad_cut_dev-grad_cut, label=label)
       
-    ax.set_xlabel(r"$y=\frac{{1}}{{\sigma^{{bin}}}}\frac{{d\sigma^{{bin}}}}{{d {}}}$".format(TGC_name_map[TGC_name]), fontsize=30)
-    ax.set_ylabel(r"$y\left(\Delta c, \Delta w\right)-y\left(0,0\right)$")
+    ax.set_xlabel(r"$A_{{lin}}=\frac{{1}}{{\sigma^{{bin}}}}\frac{{d\sigma^{{bin}}}}{{d {}}}$".format(TGC_name_map[TGC_name]), fontsize=30)
+    ax.set_ylabel(r"$y\left(\Delta c, \Delta w\right)-A_{{lin}}\left(0,0\right)$")
     ax.legend(fontsize=16, title="${}$\n$\delta_{{cut}}={}$".format(process_str, cut_dev), title_fontsize=16)
     
     for format in output_formats:
@@ -221,8 +219,8 @@ def create_relative_relevance_plots(xy_dict, output_base, dev_scale, cut_dev,
       grad_TGC = grad(xy_dict[cut_name][TGC_name][1], xy_dict["cut"][TGC_name][1])
       ax.scatter(grad_SM, grad_TGC-grad_SM, label=label)
     
-    ax.set_xlabel(r"$y=\frac{{1}}{{\sigma^{{bin}}}}\frac{{d\sigma^{{bin}}}}{{d {}}}$".format(cut_name_map[cut_name]), fontsize=30)
-    ax.set_ylabel(r"$y\left(\Delta TGCs\right)-y\left(0\right)$")
+    ax.set_xlabel(r"$A_{{lin}}=\frac{{1}}{{\sigma^{{bin}}}}\frac{{d\sigma^{{bin}}}}{{d {}}}$".format(cut_name_map[cut_name]), fontsize=30)
+    ax.set_ylabel(r"$A_{{lin}}\left(\Delta TGCs\right)-A_{{lin}}\left(0\right)$")
     ax.legend(fontsize=16, title="${}$\n$\delta_{{TGC}}={}$".format(process_str, cut_dev), title_fontsize=16)
     
     for format in output_formats:
