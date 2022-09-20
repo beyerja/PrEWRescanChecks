@@ -32,10 +32,10 @@ def create_xs0_plot(xs0_dict, output_base, dev_scale, mu_charge,
   y_TGC_M = np.array([xs0_dict[point] for point in ["g1z -", "ka -", "la -"]])
   
   ax.plot([0,3], [1.,1.])
-  ax.errorbar(x, y_TGC_P / y_SM, xerr=0.5, marker="*", ls='none', label="$+\delta$")
-  ax.errorbar(x, y_TGC_M / y_SM, xerr=0.5, marker="o", ls='none', label="$-\delta$")
+  ax.errorbar(x, y_TGC_P / y_SM - 1, xerr=0.5, marker="*", ls='none', label="$+\delta$")
+  ax.errorbar(x, y_TGC_M / y_SM - 1, xerr=0.5, marker="o", ls='none', label="$-\delta$")
     
-  ax.set_ylabel(r"$\sigma_0^{TGC} / \sigma_0^{SM}$", fontsize=30)
+  ax.set_ylabel(r"$\sigma_0^{TGC} / \sigma_0^{SM} - 1$", fontsize=30)
   
   process_str = PN.process_str(None,mu_charge)
   ax.legend(fontsize=20, loc='center right', title="${}$\n$\sigma_0^{{SM}}={}$\n$\delta={}$".format(process_str,np.round(y_SM,1),dev_scale), title_fontsize=20)
